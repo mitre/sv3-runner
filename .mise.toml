@@ -1,0 +1,3 @@
+[tools]
+# Electron 40.1.0 + @electron/asar requires Node >=22.12
+node = "22"
