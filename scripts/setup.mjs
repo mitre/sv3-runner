@@ -1,10 +1,17 @@
 #!/usr/bin/env node
 
-import { existsSync, mkdirSync, cpSync, readdirSync, rmSync, statSync } from 'fs';
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
 import { run, runCapture } from './lib/exec.mjs';
+import {
+  extractApp,
+  installDeps,
+  buildSqlite,
+  patchSqlite,
+  ExtractError,
+} from './lib/pipeline.mjs';
 import {
   parseSv3Listing,
   selectLatestZip,
@@ -307,33 +314,18 @@ if (!existsSync(APP_DIR) || FORCE) {
   }
 
   const tempDir = join(os.tmpdir(), `sv3-extract-${Date.now()}`);
-  mkdirSync(tempDir, { recursive: true });
-
   try {
-    if (platform === 'win32') {
-      run(
-        `powershell -Command "Expand-Archive -Path '${sv3Zip}' -DestinationPath '${tempDir}' -Force"`,
-      );
-    } else {
-      run(`unzip -q "${sv3Zip}" "stig_viewer_3-linux-x64/resources/*" -d "${tempDir}"`);
+    extractApp({ sv3Zip, appDir: APP_DIR, tempDir, platform });
+  } catch (err) {
+    if (err instanceof ExtractError) {
+      console.error('ERROR: Failed to extract zip.');
+      console.error(`  macOS: brew install unzip (usually pre-installed)`);
+      console.error(`  Linux: sudo apt install unzip`);
+      console.error(`  Windows: PowerShell Expand-Archive should work automatically`);
+      process.exit(1);
     }
-  } catch {
-    console.error('ERROR: Failed to extract zip.');
-    console.error(`  macOS: brew install unzip (usually pre-installed)`);
-    console.error(`  Linux: sudo apt install unzip`);
-    console.error(`  Windows: PowerShell Expand-Archive should work automatically`);
-    process.exit(1);
+    throw err;
   }
-
-  const resourcesDir = join(tempDir, 'stig_viewer_3-linux-x64', 'resources');
-  run(`npx @electron/asar extract "${join(resourcesDir, 'app.asar')}" "${APP_DIR}"`);
-
-  const unpackedDir = join(resourcesDir, 'app.asar.unpacked');
-  if (existsSync(unpackedDir)) {
-    cpSync(unpackedDir, APP_DIR, { recursive: true, force: true });
-  }
-
-  rmSync(tempDir, { recursive: true, force: true });
   console.log(`Extracted to ${APP_DIR}`);
 } else {
   console.log('--- Step 1: sv3-app/ exists, skipping (use --force to re-extract) ---');
@@ -344,7 +336,7 @@ const depsInstalled = existsSync(join(PROJECT_DIR, 'node_modules', 'electron'));
 if (!depsInstalled || FORCE) {
   console.log('');
   console.log('--- Step 2: Installing dependencies ---');
-  run('npm install');
+  installDeps({ projectDir: PROJECT_DIR });
 } else {
   console.log('');
   console.log('--- Step 2: Dependencies installed, skipping (use --force to reinstall) ---');
@@ -356,11 +348,10 @@ if (!existsSync(targetBinary) || FORCE) {
   console.log(
     `--- Step 3: Building sqlite3 for ${platform}-${arch} (Electron ${ELECTRON_VERSION}) ---`,
   );
-  run(`npx @electron/rebuild -f -w sqlite3 -v ${ELECTRON_VERSION}`);
+  buildSqlite({ electronVersion: ELECTRON_VERSION, projectDir: PROJECT_DIR });
 
   console.log('');
   console.log('--- Step 4: Patching sqlite3-offline-next ---');
-  mkdirSync(targetDir, { recursive: true });
 
   const builtBinary = findFile(join(PROJECT_DIR, 'node_modules', 'sqlite3'), 'node_sqlite3.node');
   if (!builtBinary) {
@@ -369,7 +360,7 @@ if (!existsSync(targetBinary) || FORCE) {
     process.exit(1);
   }
 
-  cpSync(builtBinary, targetBinary);
+  patchSqlite({ builtBinary, targetDir, targetBinary });
   console.log(`OK: ${platform}-${arch} binary placed`);
 } else {
   console.log('');
