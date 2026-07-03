@@ -153,4 +153,6 @@ This validates that Heimdall's CKLB output is accepted by the real STIG Viewer 3
 
 ## License
 
-This project provides tooling to run DISA's STIG Viewer 3. SV3 itself is a U.S. Government product. This runner is licensed under [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+This project (the sv3-runner tooling) is licensed under the Apache License, Version 2.0 — see the [LICENSE](./LICENSE) file for the full text, and [NOTICE](./NOTICE) for the MITRE copyright and attribution.
+
+STIG Viewer 3 itself is a U.S. Government (DISA) product. This repository does **not** contain, vendor, or modify SV3 — the setup script downloads it directly from the DISA CDN at run time. The Apache-2.0 license applies only to the sv3-runner scripts and configuration, not to STIG Viewer 3. See [NOTICE](./NOTICE) for details.
