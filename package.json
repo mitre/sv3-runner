@@ -1,5 +1,5 @@
 {
-  "name": "sv3-runner",
+  "name": "@mitre/sv3-runner",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,9 @@
     "status": "node scripts/setup.mjs --status",
     "clean": "node scripts/setup.mjs --clean",
     "start": "node scripts/run.mjs",
-    "test": "npx playwright test"
+    "test": "node --test 'test/**/*.test.mjs'",
+    "test:unit": "node --test 'test/unit/**/*.test.mjs'",
+    "test:functional": "node --test 'test/functional/**/*.test.mjs'"
   },
   "dependencies": {
     "electron": "40.1.0",
