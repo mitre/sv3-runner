@@ -1,0 +1,184 @@
+{
+  "title": "sample-rhel10-cklb",
+  "id": "94ba2c1e-f1c1-4a62-b2e1-a4365b06dc47",
+  "active": true,
+  "mode": 2,
+  "has_path": false,
+  "cklb_version": "1.0",
+  "target_data": {
+    "target_type": "Computing",
+    "host_name": "rhel10",
+    "ip_address": "192.168.1.100",
+    "mac_address": "",
+    "fqdn": "rhel10.example.com",
+    "comments": "",
+    "role": "None",
+    "is_web_database": false,
+    "technology_area": "None",
+    "web_db_site": "",
+    "web_db_instance": "",
+    "classification": null
+  },
+  "stigs": [
+    {
+      "stig_name": "Red Hat Enterprise Linux 10 Security Technical Implementation Guide",
+      "display_name": "Red Hat Enterprise Linux 10",
+      "stig_id": "RHEL_10_STIG",
+      "release_info": "Release: 1 Benchmark Date: 26 Feb 2026",
+      "version": "1",
+      "uuid": "702497c3-c9e2-4865-821d-1010678cc6a4",
+      "reference_identifier": "5733",
+      "size": 3,
+      "rules": [
+        {
+          "group_id_src": "V-282965",
+          "group_tree": [
+            {
+              "id": "V-282965",
+              "title": "SRG-OS-000830-GPOS-00300",
+              "description": "<GroupDescription></GroupDescription>"
+            }
+          ],
+          "group_id": "V-282965",
+          "severity": "high",
+          "group_title": "RHEL 10 must be a vendor-supported release.",
+          "rule_id_src": "SV-282965r1197252_rule",
+          "rule_id": "SV-282965r1197252",
+          "rule_version": "RHEL-10-001000",
+          "rule_title": "RHEL 10 must be a vendor-supported release.",
+          "fix_text": "Upgrade to a supported version of RHEL 10.",
+          "weight": "10.0",
+          "check_content": "Verify RHEL 10 is a vendor-supported version with the following command:\n\n$ cat /etc/redhat-release\nRed Hat Enterprise Linux release 10.0 (Coughlan)\n\nIf the installed version of RHEL 10 is not supported, this is a finding.",
+          "check_content_ref": {
+            "href": "Red_Hat_Enterprise_Linux_10_STIG.xml",
+            "name": "M"
+          },
+          "classification": "Unclassified",
+          "discussion": "An operating system release is considered \"supported\" if the vendor continues to provide security patches for the product. With an unsupported release, it will not be possible to resolve security issues discovered in the system software.\n\nRed Hat offers the Extended Update Support (EUS) add-on to a Red Hat Enterprise Linux subscription, for a fee, for customers who wish to standardize on a specific minor release for an extended period.\n\nEnd-of-life dates for Red Hat Linux 10 releases are as follows:\n- Current end of Full Support for Red Hat Linux 10 is 31 May 2030.\n- Current end of Maintenance Support for Red Hat Linux 10 is 31 May 2035.\n- Current end of Extended Life Cycle Support (ELS) for Red Hat Linux 9 is 31 May 2038.",
+          "false_positives": "",
+          "false_negatives": "",
+          "documentable": "false",
+          "security_override_guidance": "",
+          "potential_impacts": "",
+          "third_party_tools": "",
+          "ia_controls": "",
+          "responsibility": "",
+          "mitigations": "",
+          "mitigation_control": "",
+          "legacy_ids": [],
+          "ccis": [
+            "CCI-003376"
+          ],
+          "reference_identifier": "5733",
+          "uuid": "311ff4e5-e6fc-46d3-8ee4-2aa75fea767c",
+          "stig_uuid": "702497c3-c9e2-4865-821d-1010678cc6a4",
+          "status": "not_a_finding",
+          "overrides": {},
+          "comments": "hi",
+          "finding_details": "its supported",
+          "srg_id": "SRG-OS-000830-GPOS-00300"
+        },
+        {
+          "group_id_src": "V-281016",
+          "group_tree": [
+            {
+              "id": "V-281016",
+              "title": "SRG-OS-000396-GPOS-00176",
+              "description": "<GroupDescription></GroupDescription>"
+            }
+          ],
+          "group_id": "V-281016",
+          "severity": "high",
+          "group_title": "RHEL 10 cryptographic policy must not be overridden.",
+          "rule_id_src": "SV-281016r1165403_rule",
+          "rule_id": "SV-281016r1165403",
+          "rule_version": "RHEL-10-300090",
+          "rule_title": "RHEL 10 cryptographic policy must not be overridden.",
+          "fix_text": "Configure RHEL 10 to correctly implement the systemwide cryptographic policies by reinstalling the crypto-policies package contents.\n\nReinstall crypto-policies with the following command:\n\n$ sudo dnf -y reinstall crypto-policies\n\nSet the crypto-policy to FIPS with the following command:\n\n$ sudo update-crypto-policies --set FIPS\nSetting system policy to FIPS\n\nNote: Systemwide crypto policies are applied on application startup. It is recommended to restart the system for the change of policies to fully take place.",
+          "weight": "10.0",
+          "check_content": "Verify RHEL 10 cryptographic policies are not overridden.\n\nVerify the configured policy matches the generated policy with the following command:\n\n$ sudo update-crypto-policies --check\nThe configured policy matches the generated policy\n\nIf the returned message does not match the above, but instead matches the following, this is a finding:\n\nThe configured policy does NOT match the generated policy\n\nList all of the crypto backends configured on the system with the following command:\n\n$ ls -l /etc/crypto-policies/back-ends/ \nlrwxrwxrwx. 1 root root  40 Nov 13 16:29 bind.config -> /usr/share/crypto-policies/FIPS/bind.txt\nlrwxrwxrwx. 1 root root  42 Nov 13 16:29 gnutls.config -> /usr/share/crypto-policies/FIPS/gnutls.txt\nlrwxrwxrwx. 1 root root  40 Nov 13 16:29 java.config -> /usr/share/crypto-policies/FIPS/java.txt\nlrwxrwxrwx. 1 root root  46 Nov 13 16:29 javasystem.config -> /usr/share/crypto-policies/FIPS/javasystem.txt\nlrwxrwxrwx. 1 root root  40 Nov 13 16:29 krb5.config -> /usr/share/crypto-policies/FIPS/krb5.txt\nlrwxrwxrwx. 1 root root  45 Nov 13 16:29 libreswan.config -> /usr/share/crypto-policies/FIPS/libreswan.txt\nlrwxrwxrwx. 1 root root  42 Nov 13 16:29 libssh.config -> /usr/share/crypto-policies/FIPS/libssh.txt\n-rw-r--r--. 1 root root 398 Nov 13 16:29 nss.config\nlrwxrwxrwx. 1 root root  43 Nov 13 16:29 openssh.config -> /usr/share/crypto-policies/FIPS/openssh.txt\nlrwxrwxrwx. 1 root root  49 Nov 13 16:29 opensshserver.config -> /usr/share/crypto-policies/FIPS/opensshserver.txt\nlrwxrwxrwx. 1 root root  46 Nov 13 16:29 opensslcnf.config -> /usr/share/crypto-policies/FIPS/opensslcnf.txt\nlrwxrwxrwx. 1 root root  43 Nov 13 16:29 openssl.config -> /usr/share/crypto-policies/FIPS/openssl.txt\nlrwxrwxrwx. 1 root root  48 Nov 13 16:29 openssl_fips.config -> /usr/share/crypto-policies/FIPS/openssl_fips.txt\n\nIf the paths do not point to the respective files under \"/usr/share/crypto-policies/FIPS\" path, this is a finding.\n\nNote: nss.config should not be symlinked.\n\nNote: If there is an operational need to use a subpolicy that causes the links to the crypto backends to break, this is a finding, and exceptions must be made by the authorizing official and documented with the information system security officer.",
+          "check_content_ref": {
+            "href": "Red_Hat_Enterprise_Linux_10_STIG.xml",
+            "name": "M"
+          },
+          "classification": "Unclassified",
+          "discussion": "Centralized cryptographic policies simplify applying secure ciphers across an operating system and the applications that run on that operating system. Use of weak or untested encryption algorithms undermines the purposes of using encryption to protect data.\n\nSatisfies: SRG-OS-000396-GPOS-00176, SRG-OS-000393-GPOS-00173, SRG-OS-000394-GPOS-00174",
+          "false_positives": "",
+          "false_negatives": "",
+          "documentable": "false",
+          "security_override_guidance": "",
+          "potential_impacts": "",
+          "third_party_tools": "",
+          "ia_controls": "",
+          "responsibility": "",
+          "mitigations": "",
+          "mitigation_control": "",
+          "legacy_ids": [],
+          "ccis": [
+            "CCI-002450",
+            "CCI-002890",
+            "CCI-003123"
+          ],
+          "reference_identifier": "5733",
+          "uuid": "c4194d86-be8a-4d13-87b7-fb9fd288dad1",
+          "stig_uuid": "702497c3-c9e2-4865-821d-1010678cc6a4",
+          "status": "open",
+          "overrides": {},
+          "comments": "",
+          "finding_details": "",
+          "srg_id": "SRG-OS-000396-GPOS-00176"
+        },
+        {
+          "group_id_src": "V-281268",
+          "group_tree": [
+            {
+              "id": "V-281268",
+              "title": "SRG-OS-000423-GPOS-00187",
+              "description": "<GroupDescription></GroupDescription>"
+            }
+          ],
+          "group_id": "V-281268",
+          "severity": "high",
+          "group_title": "RHEL 10 must force a frequent session key renegotiation for Secure Shell (SSH) connections to the server.",
+          "rule_id_src": "SV-281268r1184768_rule",
+          "rule_id": "SV-281268r1184768",
+          "rule_version": "RHEL-10-700650",
+          "rule_title": "RHEL 10 must force a frequent session key renegotiation for Secure Shell (SSH) connections to the server.",
+          "fix_text": "Configure RHEL 10 to force a frequent session key renegotiation for SSH connections to the server.\n\nIn \"/etc/ssh/sshd_config.d\", create a drop file that will lexicographically precede 50-redhat.conf and add the following line:\n\nRekeyLimit 1G 1h\n\nRestart the SSH daemon with the following command for the settings to take effect:\n\n$ sudo systemctl restart sshd.service",
+          "weight": "10.0",
+          "check_content": "Verify RHEL 10 SSH servers are configured to force frequent session key renegotiation with the following command:\n\n$ sudo /usr/sbin/sshd -dd 2>&1 | awk '/filename/ {print $4}' | tr -d '\\r' | tr '\\n' ' ' | xargs sudo grep -iH '^\\s*rekeylimit'\n/etc/ssh/sshd_config.d/10-stig.conf:RekeyLimit 1G 1h\n\nVerify the runtime setting with the following command:\n\n$ sudo sshd -T | grep -i rekeylimit\nrekeylimit 1073741824 3600\n\nIf the \"RekeyLimit\" keyword is not set to \"1G 1h\" in a drop-in that lexicographically precedes 50-redhat.conf, or if no output is returned, this is a finding.",
+          "check_content_ref": {
+            "href": "Red_Hat_Enterprise_Linux_10_STIG.xml",
+            "name": "M"
+          },
+          "classification": "Unclassified",
+          "discussion": "Without protection of the transmitted information, confidentiality and integrity may be compromised because unprotected communications can be intercepted and either read or altered.\n\nThis requirement applies to both internal and external networks and all types of information system components from which information can be transmitted (e.g., servers, mobile devices, notebook computers, printers, copiers, scanners, and facsimile machines). Communication paths outside the physical protection of a controlled boundary are exposed to the possibility of interception and modification.\n\nProtecting the confidentiality and integrity of organizational information can be accomplished by physical means (e.g., employing physical distribution systems) or by logical means (e.g., employing cryptographic techniques). If physical means of protection are employed, then logical means (cryptography) do not have to be employed, and vice versa.\n\nSession key regeneration limits the chances of a session key becoming compromised.\n\nOpenSSH uses the first occurrence of a keyword it sees, and drop-in files are read in lexicographical order at the start of the configuration. Red Hat recommends using drop-in files rather than changing base configuration files.\n\nSatisfies: SRG-OS-000423-GPOS-00187, SRG-OS-000033-GPOS-00014, SRG-OS-000424-GPOS-00188",
+          "false_positives": "",
+          "false_negatives": "",
+          "documentable": "false",
+          "security_override_guidance": "",
+          "potential_impacts": "",
+          "third_party_tools": "",
+          "ia_controls": "",
+          "responsibility": "",
+          "mitigations": "",
+          "mitigation_control": "",
+          "legacy_ids": [],
+          "ccis": [
+            "CCI-002418",
+            "CCI-000068",
+            "CCI-002421"
+          ],
+          "reference_identifier": "5733",
+          "uuid": "5b754c83-2a7c-410a-a083-76195294d477",
+          "stig_uuid": "702497c3-c9e2-4865-821d-1010678cc6a4",
+          "status": "not_applicable",
+          "overrides": {},
+          "comments": "",
+          "finding_details": "",
+          "srg_id": "SRG-OS-000423-GPOS-00187"
+        }
+      ]
+    }
+  ]
+}

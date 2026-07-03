@@ -16,8 +16,9 @@
     "test": "node --test 'test/**/*.test.mjs'",
     "test:unit": "node --test 'test/unit/**/*.test.mjs'",
     "test:functional": "node --test 'test/functional/**/*.test.mjs'",
-    "lint": "eslint . && prettier --check scripts test eslint.config.mjs",
-    "format": "prettier --write scripts test eslint.config.mjs"
+    "test:e2e": "playwright test",
+    "lint": "eslint . && prettier --check scripts test eslint.config.mjs playwright.config.mjs",
+    "format": "prettier --write scripts test eslint.config.mjs playwright.config.mjs"
   },
   "dependencies": {
     "@electron/asar": "^4.2.0",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
     "eslint": "^10.6.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.7.0",
