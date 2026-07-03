@@ -1,7 +1,7 @@
 // Pure helpers extracted from scripts/setup.mjs (card sv3-runner-xxl.1).
 // No I/O, no process/global access — everything is a function of its arguments,
-// so these are unit-testable. Behavior is preserved verbatim from the inline code;
-// the known hashesFilenameFor bug is fixed separately in card sv3-runner-xxl.3.
+// so these are unit-testable. Extraction preserved the inline behavior verbatim;
+// the one known bug (hashesFilenameFor's no-op replace) was fixed in card sv3-runner-tu5.4.
 import { join } from 'node:path';
 
 // Extract SV3 linux-x64 zip filenames from a DISA CDN Apache directory listing.
@@ -50,16 +50,15 @@ export function fileAgeLabel(msDelta) {
   return `${Math.round(hours / 24)} days ago`;
 }
 
-// Derive the "_Hashes.txt" filename DISA publishes next to a zip.
-// NOTE: preserved AS-IS from setup.mjs and KNOWN BUGGY (the `.replace(/-/g, '-')`
-// is a no-op, producing e.g. "U_STIGViewer_-3-7-0_Hashes.txt"). Fixed in card .3.
+// Derive the "_Hashes.txt" filename DISA publishes next to a zip. The hashes file is
+// keyed to the VERSION only and shared across platforms — e.g. both
+// U_STIGViewer-linux_x64-3-7-0.zip and U_STIGViewer-win32_x64-3-7-0.zip map to
+// U_STIGViewer_3-7-0_Hashes.txt (verified against the live DISA CDN, 2026-07-03).
 export function hashesFilenameFor(zipFilename) {
-  const base = zipFilename
-    .replace(/linux_x64-/, '')
-    .replace(/\.zip$/, '')
-    .replace(/-/g, '-')
-    .replace('U_STIGViewer', 'U_STIGViewer_');
-  return `${base}_Hashes.txt`;
+  // Anchor to `.zip$` so we capture the trailing version (3-7-0), not the "64" from
+  // the "x64" platform segment that an unanchored \d+-\d+-\d+ would grab first.
+  const version = zipFilename.match(/(\d+-\d+-\d+)\.zip$/)?.[1] ?? '';
+  return `U_STIGViewer_${version}_Hashes.txt`;
 }
 
 // Directory where sqlite3-offline-next expects the rebuilt native binary.

@@ -76,12 +76,13 @@ test('fileAgeLabel formats a ms delta the same way the inline code did', () => {
   assert.equal(fileAgeLabel(3 * 24 * 60 * 60 * 1000), '3 days ago'); // else → days
 });
 
-test('hashesFilenameFor pins CURRENT (buggy) output — card .3 fixes + updates this', () => {
-  // The inline code has a no-op `.replace(/-/g,'-')`, yielding a wrong name.
-  // Characterization only: proves the extraction is behavior-preserving.
+test('hashesFilenameFor returns the correct DISA hashes name (bug fixed in tu5.4)', () => {
+  // The original inline no-op `.replace(/-/g,'-')` produced U_STIGViewer_-3-7-0_Hashes.txt,
+  // which 404s. Fixed to the version-keyed name verified against the live CDN.
+  // Fuller edge-case coverage lives in test/unit/sv3.test.mjs.
   assert.equal(
     hashesFilenameFor('U_STIGViewer-linux_x64-3-7-0.zip'),
-    'U_STIGViewer_-3-7-0_Hashes.txt',
+    'U_STIGViewer_3-7-0_Hashes.txt',
   );
 });
 
