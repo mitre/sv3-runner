@@ -5,6 +5,16 @@ import { existsSync, mkdirSync, cpSync, readdirSync, rmSync, statSync } from 'fs
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
+import {
+  parseSv3Listing,
+  selectLatestZip,
+  selectSv3Zip,
+  checkNodeVersionOk,
+  fileAgeLabel,
+  hashesFilenameFor,
+  sqlite3TargetDir,
+  sqlite3BinaryPath,
+} from './lib/sv3.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_DIR = join(__dirname, '..');
@@ -91,10 +101,7 @@ function findFile(dir, name) {
 function fileAge(filePath) {
   if (!existsSync(filePath)) return null;
   const mtime = statSync(filePath).mtime;
-  const hours = (Date.now() - mtime.getTime()) / (1000 * 60 * 60);
-  if (hours < 1) return `${Math.round(hours * 60)} minutes ago`;
-  if (hours < 24) return `${Math.round(hours)} hours ago`;
-  return `${Math.round(hours / 24)} days ago`;
+  return fileAgeLabel(Date.now() - mtime.getTime());
 }
 
 async function findLatestSv3Url() {
@@ -106,29 +113,14 @@ async function findLatestSv3Url() {
     return null;
   }
 
-  const linkPattern = /HREF="(U_STIGViewer-linux_x64-[\d-]+\.zip)"/gi;
-  const matches = [...html.matchAll(linkPattern)].map(m => m[1]);
+  const matches = parseSv3Listing(html);
 
   if (matches.length === 0) {
     console.error('ERROR: No SV3 linux-x64 downloads found on CDN.');
     return null;
   }
 
-  // Sort by version (filename has version like 3-7-0)
-  matches.sort((a, b) => {
-    const versionOf = (s) => {
-      const m = s.match(/(\d+-\d+-\d+)/);
-      return m ? m[1].split('-').map(Number) : [0, 0, 0];
-    };
-    const va = versionOf(a);
-    const vb = versionOf(b);
-    for (let i = 0; i < 3; i++) {
-      if (va[i] !== vb[i]) return va[i] - vb[i];
-    }
-    return 0;
-  });
-
-  const latest = matches[matches.length - 1];
+  const latest = selectLatestZip(matches);
   return { filename: latest, url: `${SV3_CDN}${latest}` };
 }
 
@@ -156,12 +148,7 @@ async function downloadSv3() {
   run(`curl -L -o "${destPath}" "${info.url}"`);
 
   // Also grab hashes if available
-  const hashFilename = info.filename
-    .replace(/linux_x64-/, '')
-    .replace(/\.zip$/, '')
-    .replace(/-/g, '-')
-    .replace('U_STIGViewer', 'U_STIGViewer_');
-  const hashUrl = `${SV3_CDN}${hashFilename}_Hashes.txt`;
+  const hashUrl = `${SV3_CDN}${hashesFilenameFor(info.filename)}`;
   const hashDest = join(DOWNLOADS_DIR, `${info.filename.replace('.zip', '')}_Hashes.txt`);
   try {
     run(`curl -sL -o "${hashDest}" "${hashUrl}"`);
@@ -175,8 +162,7 @@ async function downloadSv3() {
 }
 
 function checkNodeVersion() {
-  const major = parseInt(process.version.slice(1).split('.')[0], 10);
-  if (major >= MIN_NODE_MAJOR && major <= MAX_NODE_MAJOR) return true;
+  if (checkNodeVersionOk(process.version, MIN_NODE_MAJOR, MAX_NODE_MAJOR)) return true;
 
   console.error(`\nERROR: Node ${process.version} is not compatible.`);
   console.error(`       Requires Node ${MIN_NODE_MAJOR}.x (Electron ${ELECTRON_VERSION} native module ABI).`);
@@ -205,24 +191,12 @@ function checkNodeVersion() {
 
 const platform = os.platform();
 const arch = os.arch();
-const targetDir = join(
-  APP_DIR, 'node_modules', 'sqlite3-offline-next', 'binaries',
-  `sqlite3-${platform}`, `napi-v3-${platform}-${arch}`,
-);
-const targetBinary = join(targetDir, 'node_sqlite3.node');
+const targetDir = sqlite3TargetDir(APP_DIR, platform, arch);
+const targetBinary = sqlite3BinaryPath(APP_DIR, platform, arch);
 // Find the SV3 zip: CLI arg > any zip in downloads/ > default name
 function findSv3Zip() {
-  if (positional[0]) return positional[0];
-
-  // Look for any SV3 linux zip in downloads/
-  if (existsSync(DOWNLOADS_DIR)) {
-    const zips = readdirSync(DOWNLOADS_DIR)
-      .filter(f => f.match(/^U_STIGViewer-linux_x64.*\.zip$/i))
-      .sort();
-    if (zips.length > 0) return join(DOWNLOADS_DIR, zips[zips.length - 1]);
-  }
-
-  return join(DOWNLOADS_DIR, 'U_STIGViewer-linux_x64-3-7-0.zip');
+  const zipFiles = existsSync(DOWNLOADS_DIR) ? readdirSync(DOWNLOADS_DIR) : [];
+  return selectSv3Zip(positional[0], DOWNLOADS_DIR, zipFiles, 'U_STIGViewer-linux_x64-3-7-0.zip');
 }
 
 let sv3Zip = findSv3Zip();
@@ -234,7 +208,7 @@ if (STATUS) {
   console.log('=== SV3 Runner Status ===');
   console.log(`Platform:        ${platform} ${arch}`);
   console.log(`Node:            ${process.version}`);
-  console.log(`Node OK:         ${(() => { const m = parseInt(process.version.slice(1)); return m >= MIN_NODE_MAJOR && m <= MAX_NODE_MAJOR ? '✓' : `✗ (need ${MIN_NODE_MAJOR}.x)`; })()}`);
+  console.log(`Node OK:         ${checkNodeVersionOk(process.version, MIN_NODE_MAJOR, MAX_NODE_MAJOR) ? '✓' : `✗ (need ${MIN_NODE_MAJOR}.x)`}`);
   console.log(`Electron:        ${ELECTRON_VERSION}`);
   console.log(`SV3 version:     ${SV3_VERSION}`);
   console.log('');
