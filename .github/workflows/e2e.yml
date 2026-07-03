@@ -1,0 +1,79 @@
+name: E2E Matrix
+
+# Heavy tier: on each OS, run the REAL setup (download SV3 from the DISA CDN →
+# extract → @electron/rebuild sqlite3 → patch), assert the native binary landed
+# (verify:setup), then launch SV3 and open a fixture .cklb (Playwright _electron).
+# Proves the cross-platform claim + the CKLB acceptance purpose end-to-end.
+# The fast tier (ci.yml) stays lint + node:test only.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: e2e (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+
+      # Cache the ~140MB SV3 zip so we don't re-pull from the DISA CDN every run.
+      # Keyed to the SV3 version — bump when SV3_VERSION in setup.mjs changes.
+      - name: Cache SV3 download
+        uses: actions/cache@v6
+        with:
+          path: downloads
+          key: sv3-download-${{ runner.os }}-3-7-0
+
+      # Full install WITH lifecycle scripts — the matrix needs the real Electron
+      # binary and native build toolchain (unlike the fast tier's --ignore-scripts).
+      - name: Install
+        run: npm ci
+
+      # Linux: Electron needs system libraries; the E2E runs under a virtual display.
+      - name: Install Linux system deps for Electron
+        if: runner.os == 'Linux'
+        run: npx playwright install-deps
+
+      # Real pipeline: download SV3 from the DISA CDN → extract → rebuild sqlite3 → patch.
+      - name: Setup (real download + extract + rebuild)
+        run: npm run setup
+
+      # Integration-smoke: the rebuilt native sqlite3 binary landed for this OS/arch.
+      - name: Verify setup
+        run: npm run verify:setup
+
+      # E2E: SV3 opens a fixture .cklb and renders rule statuses/comments.
+      - name: E2E (Linux, under xvfb)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npx playwright test
+
+      - name: E2E (macOS / Windows, native)
+        if: runner.os != 'Linux'
+        run: npx playwright test
+
+      # Screenshot evidence (test-results/cklb-loaded.png) + any failure artifacts.
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-${{ matrix.os }}
+          path: test-results
+          if-no-files-found: warn

@@ -1,44 +1,15 @@
 // Functional tests for the CLI contract of setup.mjs / run.mjs (card sv3-runner-tu5.5).
 //
-// The scripts derive PROJECT_DIR from their own location (join(__dirname, '..')),
-// so we isolate by copying scripts/ into a fresh temp sandbox and spawning the REAL
-// scripts from there — their PROJECT_DIR becomes the sandbox, never the real repo.
-// No network, no download, no native rebuild, no mutation of the working tree.
+// The sandbox harness (copy scripts/ into a temp dir, spawn the REAL scripts there)
+// lives in ../helpers/sandbox.mjs — shared with verify-setup.test.mjs. No network,
+// no download, no native rebuild, no mutation of the working tree.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, cpSync } from 'fs';
+import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
 import os from 'os';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 
-import { sqlite3BinaryPath } from '../../scripts/lib/sv3.mjs';
-
-const REPO_SCRIPTS = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'scripts');
-
-// Fresh isolated project root with a byte-for-byte copy of the real scripts/.
-function makeSandbox() {
-  const dir = mkdtempSync(join(os.tmpdir(), 'sv3-cli-'));
-  cpSync(REPO_SCRIPTS, join(dir, 'scripts'), { recursive: true });
-  return dir;
-}
-
-// Spawn a script in the sandbox with the SAME node binary; never throws on non-zero.
-function runScript(sandbox, scriptName, args = []) {
-  const res = spawnSync(process.execPath, [join(sandbox, 'scripts', scriptName), ...args], {
-    cwd: sandbox,
-    encoding: 'utf-8',
-  });
-  return { status: res.status, stdout: res.stdout ?? '', stderr: res.stderr ?? '' };
-}
-
-// Stage a fake built sqlite3 binary at the exact path sqlite3BinaryPath computes.
-function stageBinary(sandbox) {
-  const bin = sqlite3BinaryPath(join(sandbox, 'sv3-app'), os.platform(), os.arch());
-  mkdirSync(dirname(bin), { recursive: true });
-  writeFileSync(bin, 'FAKE-SQLITE3');
-  return bin;
-}
+import { makeSandbox, runScript, stageBinary } from '../helpers/sandbox.mjs';
 
 test('setup --help prints usage and exits 0', () => {
   const sb = makeSandbox();

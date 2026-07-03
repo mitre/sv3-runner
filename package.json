@@ -32,6 +32,7 @@
     "download": "node scripts/setup.mjs --download",
     "status": "node scripts/setup.mjs --status",
     "clean": "node scripts/setup.mjs --clean",
+    "verify:setup": "node scripts/verify-setup.mjs",
     "start": "node scripts/run.mjs",
     "test": "node --test 'test/**/*.test.mjs'",
     "test:unit": "node --test 'test/unit/**/*.test.mjs'",
