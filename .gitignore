@@ -39,3 +39,7 @@ playwright-report/
 .beads/recovery-context.md
 .beads/recovery-prompt.md
 .beads/archive/
+
+# Agent interaction log — chatty per-session work-tracking metadata,
+# not shared in the public repo (issues sync via Dolt refs, not this file)
+.beads/interactions.jsonl
