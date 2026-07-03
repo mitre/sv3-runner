@@ -28,8 +28,8 @@ const PROJECT_DIR = join(__dirname, '..');
 const APP_DIR = join(PROJECT_DIR, 'sv3-app');
 const ELECTRON_VERSION = '40.1.0';
 const SV3_VERSION = '3.7.0';
-const MIN_NODE_MAJOR = 22;
-const MAX_NODE_MAJOR = 22;
+const MIN_NODE_MAJOR = 24;
+const MAX_NODE_MAJOR = 24;
 
 // --- CLI argument parsing ---
 const args = new Set(process.argv.slice(2).filter((a) => a.startsWith('--')));
@@ -160,7 +160,7 @@ function checkNodeVersion() {
 
   console.error(`\nERROR: Node ${process.version} is not compatible.`);
   console.error(
-    `       Requires Node ${MIN_NODE_MAJOR}.x (Electron ${ELECTRON_VERSION} native module ABI).`,
+    `       Requires Node ${MIN_NODE_MAJOR}.x (project toolchain; matches Electron ${ELECTRON_VERSION}'s bundled Node ${MIN_NODE_MAJOR}).`,
   );
   console.error('');
 

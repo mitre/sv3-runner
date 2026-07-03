@@ -72,10 +72,10 @@ test('selectSv3Zip: empty downloads/ falls back to the default name', () => {
 });
 
 test('checkNodeVersionOk accepts only the [min,max] major range, inclusive of the boundary', () => {
-  assert.equal(checkNodeVersionOk('v22.0.0', 22, 22), true);
-  assert.equal(checkNodeVersionOk('v22.14.0', 22, 22), true);
-  assert.equal(checkNodeVersionOk('v20.0.0', 22, 22), false);
-  assert.equal(checkNodeVersionOk('v23.0.0', 22, 22), false);
+  assert.equal(checkNodeVersionOk('v24.0.0', 24, 24), true);
+  assert.equal(checkNodeVersionOk('v24.14.0', 24, 24), true);
+  assert.equal(checkNodeVersionOk('v22.0.0', 24, 24), false);
+  assert.equal(checkNodeVersionOk('v25.0.0', 24, 24), false);
 });
 
 test('fileAgeLabel picks minutes < 1h, hours < 24h, else days', () => {

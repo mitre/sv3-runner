@@ -38,7 +38,7 @@ STIG Viewer 3 itself is a U.S. Government (DISA) product that this project does 
 
 ## Best Practices for Users
 
-- **Keep updated** — use the latest version of sv3-runner and Node.js 22.x.
+- **Keep updated** — use the latest version of sv3-runner and Node.js 24.x.
 - **Verify downloads** — SV3 is fetched over HTTPS from the official DISA CDN (`dl.dod.cyber.mil`). Do not point the runner at untrusted mirrors.
 - **Review dependencies** — run `npm audit` after `npm install` and before publishing changes.
 

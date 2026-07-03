@@ -65,9 +65,9 @@ test('selectSv3Zip: CLI arg > newest zip in downloads > default name', () => {
 });
 
 test('checkNodeVersionOk accepts only the [min,max] major range', () => {
-  assert.equal(checkNodeVersionOk('v22.5.1', 22, 22), true);
-  assert.equal(checkNodeVersionOk('v20.0.0', 22, 22), false);
-  assert.equal(checkNodeVersionOk('v23.1.0', 22, 22), false);
+  assert.equal(checkNodeVersionOk('v24.5.1', 24, 24), true);
+  assert.equal(checkNodeVersionOk('v22.0.0', 24, 24), false);
+  assert.equal(checkNodeVersionOk('v25.1.0', 24, 24), false);
 });
 
 test('fileAgeLabel formats a ms delta the same way the inline code did', () => {

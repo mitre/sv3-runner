@@ -30,7 +30,7 @@ Enhancement suggestions are tracked as GitHub issues. Provide a clear title, a d
 
 ### Prerequisites
 
-- **Node.js 22.x** — SV3 uses Electron 40.1.0, whose native-module ABI requires Node 22. This is enforced by `engines` in `package.json`, `engine-strict=true` in `.npmrc`, and a runtime check in `setup.mjs`. Use a version manager (`mise`, `fnm`, `nvm`, `volta`, `asdf`) — see the README.
+- **Node.js 24.x** — the project's supported toolchain, matching Electron 40's bundled Node. Enforced by `engines` in `package.json`, `engine-strict=true` in `.npmrc`, and a runtime check in `setup.mjs`. Use a version manager (`mise`, `fnm`, `nvm`, `volta`, `asdf`) — see the README.
 - A C toolchain for `node-gyp` (`@electron/rebuild` compiles `sqlite3` from source): Xcode Command Line Tools on macOS, `build-essential` + `python3` on Linux, Visual Studio Build Tools on Windows.
 
 ### Getting Started
