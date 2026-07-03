@@ -1,0 +1,4 @@
+# Generated / vendored — never format these
+node_modules/
+sv3-app/
+downloads/

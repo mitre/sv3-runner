@@ -15,12 +15,21 @@
     "start": "node scripts/run.mjs",
     "test": "node --test 'test/**/*.test.mjs'",
     "test:unit": "node --test 'test/unit/**/*.test.mjs'",
-    "test:functional": "node --test 'test/functional/**/*.test.mjs'"
+    "test:functional": "node --test 'test/functional/**/*.test.mjs'",
+    "lint": "eslint . && prettier --check scripts test eslint.config.mjs",
+    "format": "prettier --write scripts test eslint.config.mjs"
   },
   "dependencies": {
-    "electron": "40.1.0",
-    "sqlite3": "^5.1.7",
     "@electron/asar": "^4.2.0",
-    "@electron/rebuild": "^3.7.1"
+    "@electron/rebuild": "^3.7.1",
+    "electron": "40.1.0",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.6.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.7.0",
+    "prettier": "^3.9.4"
   }
 }
