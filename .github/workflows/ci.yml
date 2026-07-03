@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Supersede in-flight runs on the same ref.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  fast:
+    name: fast tier (lint + node:test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+
+      # --ignore-scripts skips the electron binary download, the sqlite3 native
+      # build, and the Playwright browser download — none are needed by lint or
+      # the node:test unit/functional suite. This is the fast, network-light gate;
+      # the real setup/rebuild/Electron path is exercised by the full matrix (tu5.8).
+      - name: Install (no native/binary postinstalls)
+        run: npm ci --ignore-scripts
+
+      - name: Lint (ESLint + Prettier)
+        shell: bash
+        run: npm run lint 2>&1 | tee lint.log
+
+      # Scoped glob only — a bare `node --test` walks into the extracted sv3-app/
+      # and runs DISA's bundled tests. (sv3-app/ isn't present on CI, but the scope
+      # is correct regardless.)
+      - name: Unit + functional tests
+        shell: bash
+        run: node --test 'test/**/*.test.mjs' 2>&1 | tee test.log
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fast-tier-logs
+          path: |
+            lint.log
+            test.log
+          if-no-files-found: ignore

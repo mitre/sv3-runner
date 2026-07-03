@@ -1,22 +1,39 @@
 #!/usr/bin/env node
 
-import { execSync } from 'child_process';
-import { existsSync, mkdirSync, cpSync, readdirSync, rmSync, statSync } from 'fs';
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
+import { run, runCapture } from './lib/exec.mjs';
+import {
+  extractApp,
+  installDeps,
+  buildSqlite,
+  patchSqlite,
+  ExtractError,
+} from './lib/pipeline.mjs';
+import {
+  parseSv3Listing,
+  selectLatestZip,
+  selectSv3Zip,
+  checkNodeVersionOk,
+  fileAgeLabel,
+  hashesFilenameFor,
+  sqlite3TargetDir,
+  sqlite3BinaryPath,
+} from './lib/sv3.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_DIR = join(__dirname, '..');
 const APP_DIR = join(PROJECT_DIR, 'sv3-app');
 const ELECTRON_VERSION = '40.1.0';
 const SV3_VERSION = '3.7.0';
-const MIN_NODE_MAJOR = 22;
-const MAX_NODE_MAJOR = 22;
+const MIN_NODE_MAJOR = 24;
+const MAX_NODE_MAJOR = 24;
 
 // --- CLI argument parsing ---
-const args = new Set(process.argv.slice(2).filter(a => a.startsWith('--')));
-const positional = process.argv.slice(2).filter(a => !a.startsWith('--'));
+const args = new Set(process.argv.slice(2).filter((a) => a.startsWith('--')));
+const positional = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 
 const FORCE = args.has('--force');
 const STATUS = args.has('--status');
@@ -61,19 +78,6 @@ Environment:
 }
 
 // --- Helpers ---
-function run(cmd, opts = {}) {
-  console.log(`  $ ${cmd}`);
-  return execSync(cmd, { stdio: 'inherit', cwd: PROJECT_DIR, ...opts });
-}
-
-function runCapture(cmd) {
-  try {
-    return execSync(cmd, { cwd: PROJECT_DIR, encoding: 'utf-8' }).trim();
-  } catch {
-    return null;
-  }
-}
-
 function findFile(dir, name) {
   if (!existsSync(dir)) return null;
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -91,10 +95,7 @@ function findFile(dir, name) {
 function fileAge(filePath) {
   if (!existsSync(filePath)) return null;
   const mtime = statSync(filePath).mtime;
-  const hours = (Date.now() - mtime.getTime()) / (1000 * 60 * 60);
-  if (hours < 1) return `${Math.round(hours * 60)} minutes ago`;
-  if (hours < 24) return `${Math.round(hours)} hours ago`;
-  return `${Math.round(hours / 24)} days ago`;
+  return fileAgeLabel(Date.now() - mtime.getTime());
 }
 
 async function findLatestSv3Url() {
@@ -106,29 +107,14 @@ async function findLatestSv3Url() {
     return null;
   }
 
-  const linkPattern = /HREF="(U_STIGViewer-linux_x64-[\d-]+\.zip)"/gi;
-  const matches = [...html.matchAll(linkPattern)].map(m => m[1]);
+  const matches = parseSv3Listing(html);
 
   if (matches.length === 0) {
     console.error('ERROR: No SV3 linux-x64 downloads found on CDN.');
     return null;
   }
 
-  // Sort by version (filename has version like 3-7-0)
-  matches.sort((a, b) => {
-    const versionOf = (s) => {
-      const m = s.match(/(\d+-\d+-\d+)/);
-      return m ? m[1].split('-').map(Number) : [0, 0, 0];
-    };
-    const va = versionOf(a);
-    const vb = versionOf(b);
-    for (let i = 0; i < 3; i++) {
-      if (va[i] !== vb[i]) return va[i] - vb[i];
-    }
-    return 0;
-  });
-
-  const latest = matches[matches.length - 1];
+  const latest = selectLatestZip(matches);
   return { filename: latest, url: `${SV3_CDN}${latest}` };
 }
 
@@ -156,12 +142,7 @@ async function downloadSv3() {
   run(`curl -L -o "${destPath}" "${info.url}"`);
 
   // Also grab hashes if available
-  const hashFilename = info.filename
-    .replace(/linux_x64-/, '')
-    .replace(/\.zip$/, '')
-    .replace(/-/g, '-')
-    .replace('U_STIGViewer', 'U_STIGViewer_');
-  const hashUrl = `${SV3_CDN}${hashFilename}_Hashes.txt`;
+  const hashUrl = `${SV3_CDN}${hashesFilenameFor(info.filename)}`;
   const hashDest = join(DOWNLOADS_DIR, `${info.filename.replace('.zip', '')}_Hashes.txt`);
   try {
     run(`curl -sL -o "${hashDest}" "${hashUrl}"`);
@@ -175,19 +156,36 @@ async function downloadSv3() {
 }
 
 function checkNodeVersion() {
-  const major = parseInt(process.version.slice(1).split('.')[0], 10);
-  if (major >= MIN_NODE_MAJOR && major <= MAX_NODE_MAJOR) return true;
+  if (checkNodeVersionOk(process.version, MIN_NODE_MAJOR, MAX_NODE_MAJOR)) return true;
 
   console.error(`\nERROR: Node ${process.version} is not compatible.`);
-  console.error(`       Requires Node ${MIN_NODE_MAJOR}.x (Electron ${ELECTRON_VERSION} native module ABI).`);
+  console.error(
+    `       Requires Node ${MIN_NODE_MAJOR}.x (project toolchain; matches Electron ${ELECTRON_VERSION}'s bundled Node ${MIN_NODE_MAJOR}).`,
+  );
   console.error('');
 
   const managers = [
     { name: 'mise', check: 'mise --version', fix: `mise exec -- node scripts/setup.mjs` },
-    { name: 'fnm', check: 'fnm --version', fix: `fnm exec --using=${MIN_NODE_MAJOR} -- node scripts/setup.mjs` },
-    { name: 'nvm', check: 'nvm --version', fix: `nvm use ${MIN_NODE_MAJOR} && node scripts/setup.mjs` },
-    { name: 'volta', check: 'volta --version', fix: `volta run --node ${MIN_NODE_MAJOR} -- node scripts/setup.mjs` },
-    { name: 'asdf', check: 'asdf --version', fix: `asdf local nodejs ${MIN_NODE_MAJOR}.0.0 && node scripts/setup.mjs` },
+    {
+      name: 'fnm',
+      check: 'fnm --version',
+      fix: `fnm exec --using=${MIN_NODE_MAJOR} -- node scripts/setup.mjs`,
+    },
+    {
+      name: 'nvm',
+      check: 'nvm --version',
+      fix: `nvm use ${MIN_NODE_MAJOR} && node scripts/setup.mjs`,
+    },
+    {
+      name: 'volta',
+      check: 'volta --version',
+      fix: `volta run --node ${MIN_NODE_MAJOR} -- node scripts/setup.mjs`,
+    },
+    {
+      name: 'asdf',
+      check: 'asdf --version',
+      fix: `asdf local nodejs ${MIN_NODE_MAJOR}.0.0 && node scripts/setup.mjs`,
+    },
   ];
 
   for (const mgr of managers) {
@@ -205,24 +203,12 @@ function checkNodeVersion() {
 
 const platform = os.platform();
 const arch = os.arch();
-const targetDir = join(
-  APP_DIR, 'node_modules', 'sqlite3-offline-next', 'binaries',
-  `sqlite3-${platform}`, `napi-v3-${platform}-${arch}`,
-);
-const targetBinary = join(targetDir, 'node_sqlite3.node');
+const targetDir = sqlite3TargetDir(APP_DIR, platform, arch);
+const targetBinary = sqlite3BinaryPath(APP_DIR, platform, arch);
 // Find the SV3 zip: CLI arg > any zip in downloads/ > default name
 function findSv3Zip() {
-  if (positional[0]) return positional[0];
-
-  // Look for any SV3 linux zip in downloads/
-  if (existsSync(DOWNLOADS_DIR)) {
-    const zips = readdirSync(DOWNLOADS_DIR)
-      .filter(f => f.match(/^U_STIGViewer-linux_x64.*\.zip$/i))
-      .sort();
-    if (zips.length > 0) return join(DOWNLOADS_DIR, zips[zips.length - 1]);
-  }
-
-  return join(DOWNLOADS_DIR, 'U_STIGViewer-linux_x64-3-7-0.zip');
+  const zipFiles = existsSync(DOWNLOADS_DIR) ? readdirSync(DOWNLOADS_DIR) : [];
+  return selectSv3Zip(positional[0], DOWNLOADS_DIR, zipFiles, 'U_STIGViewer-linux_x64-3-7-0.zip');
 }
 
 let sv3Zip = findSv3Zip();
@@ -234,14 +220,20 @@ if (STATUS) {
   console.log('=== SV3 Runner Status ===');
   console.log(`Platform:        ${platform} ${arch}`);
   console.log(`Node:            ${process.version}`);
-  console.log(`Node OK:         ${(() => { const m = parseInt(process.version.slice(1)); return m >= MIN_NODE_MAJOR && m <= MAX_NODE_MAJOR ? '✓' : `✗ (need ${MIN_NODE_MAJOR}.x)`; })()}`);
+  console.log(
+    `Node OK:         ${checkNodeVersionOk(process.version, MIN_NODE_MAJOR, MAX_NODE_MAJOR) ? '✓' : `✗ (need ${MIN_NODE_MAJOR}.x)`}`,
+  );
   console.log(`Electron:        ${ELECTRON_VERSION}`);
   console.log(`SV3 version:     ${SV3_VERSION}`);
   console.log('');
   console.log(`SV3 zip:         ${existsSync(sv3Zip) ? `✓ ${sv3Zip}` : `✗ not found (${sv3Zip})`}`);
   console.log(`sv3-app/:        ${existsSync(APP_DIR) ? `✓ extracted` : '✗ not extracted'}`);
-  console.log(`node_modules/:   ${existsSync(join(PROJECT_DIR, 'node_modules', 'electron')) ? '✓ installed' : '✗ not installed'}`);
-  console.log(`sqlite3 binary:  ${existsSync(targetBinary) ? `✓ ${platform}-${arch} (${fileAge(targetBinary)})` : `✗ not built for ${platform}-${arch}`}`);
+  console.log(
+    `node_modules/:   ${existsSync(join(PROJECT_DIR, 'node_modules', 'electron')) ? '✓ installed' : '✗ not installed'}`,
+  );
+  console.log(
+    `sqlite3 binary:  ${existsSync(targetBinary) ? `✓ ${platform}-${arch} (${fileAge(targetBinary)})` : `✗ not built for ${platform}-${arch}`}`,
+  );
   console.log('');
 
   if (existsSync(targetBinary)) {
@@ -322,31 +314,18 @@ if (!existsSync(APP_DIR) || FORCE) {
   }
 
   const tempDir = join(os.tmpdir(), `sv3-extract-${Date.now()}`);
-  mkdirSync(tempDir, { recursive: true });
-
   try {
-    if (platform === 'win32') {
-      run(`powershell -Command "Expand-Archive -Path '${sv3Zip}' -DestinationPath '${tempDir}' -Force"`);
-    } else {
-      run(`unzip -q "${sv3Zip}" "stig_viewer_3-linux-x64/resources/*" -d "${tempDir}"`);
+    extractApp({ sv3Zip, appDir: APP_DIR, tempDir, platform });
+  } catch (err) {
+    if (err instanceof ExtractError) {
+      console.error('ERROR: Failed to extract zip.');
+      console.error(`  macOS: brew install unzip (usually pre-installed)`);
+      console.error(`  Linux: sudo apt install unzip`);
+      console.error(`  Windows: PowerShell Expand-Archive should work automatically`);
+      process.exit(1);
     }
-  } catch {
-    console.error('ERROR: Failed to extract zip.');
-    console.error(`  macOS: brew install unzip (usually pre-installed)`);
-    console.error(`  Linux: sudo apt install unzip`);
-    console.error(`  Windows: PowerShell Expand-Archive should work automatically`);
-    process.exit(1);
+    throw err;
   }
-
-  const resourcesDir = join(tempDir, 'stig_viewer_3-linux-x64', 'resources');
-  run(`npx @electron/asar extract "${join(resourcesDir, 'app.asar')}" "${APP_DIR}"`);
-
-  const unpackedDir = join(resourcesDir, 'app.asar.unpacked');
-  if (existsSync(unpackedDir)) {
-    cpSync(unpackedDir, APP_DIR, { recursive: true, force: true });
-  }
-
-  rmSync(tempDir, { recursive: true, force: true });
   console.log(`Extracted to ${APP_DIR}`);
 } else {
   console.log('--- Step 1: sv3-app/ exists, skipping (use --force to re-extract) ---');
@@ -357,7 +336,7 @@ const depsInstalled = existsSync(join(PROJECT_DIR, 'node_modules', 'electron'));
 if (!depsInstalled || FORCE) {
   console.log('');
   console.log('--- Step 2: Installing dependencies ---');
-  run('npm install');
+  installDeps({ projectDir: PROJECT_DIR });
 } else {
   console.log('');
   console.log('--- Step 2: Dependencies installed, skipping (use --force to reinstall) ---');
@@ -366,12 +345,13 @@ if (!depsInstalled || FORCE) {
 // Step 3+4: Build and place sqlite3
 if (!existsSync(targetBinary) || FORCE) {
   console.log('');
-  console.log(`--- Step 3: Building sqlite3 for ${platform}-${arch} (Electron ${ELECTRON_VERSION}) ---`);
-  run(`npx @electron/rebuild -f -w sqlite3 -v ${ELECTRON_VERSION}`);
+  console.log(
+    `--- Step 3: Building sqlite3 for ${platform}-${arch} (Electron ${ELECTRON_VERSION}) ---`,
+  );
+  buildSqlite({ electronVersion: ELECTRON_VERSION, projectDir: PROJECT_DIR });
 
   console.log('');
   console.log('--- Step 4: Patching sqlite3-offline-next ---');
-  mkdirSync(targetDir, { recursive: true });
 
   const builtBinary = findFile(join(PROJECT_DIR, 'node_modules', 'sqlite3'), 'node_sqlite3.node');
   if (!builtBinary) {
@@ -380,11 +360,13 @@ if (!existsSync(targetBinary) || FORCE) {
     process.exit(1);
   }
 
-  cpSync(builtBinary, targetBinary);
+  patchSqlite({ builtBinary, targetDir, targetBinary });
   console.log(`OK: ${platform}-${arch} binary placed`);
 } else {
   console.log('');
-  console.log(`--- Step 3: sqlite3 binary exists for ${platform}-${arch}, skipping (use --force to rebuild) ---`);
+  console.log(
+    `--- Step 3: sqlite3 binary exists for ${platform}-${arch}, skipping (use --force to rebuild) ---`,
+  );
 }
 
 // Verify

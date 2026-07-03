@@ -6,14 +6,14 @@ DISA publishes SV3 as a linux-x64 Electron app only. This project extracts the a
 
 ## Prerequisites
 
-- **Node.js 22.x** — SV3 uses Electron 40.1.0 which requires Node 22 for native module ABI compatibility. Use a version manager:
+- **Node.js 24.x** — the project's supported toolchain, matching Electron 40's bundled Node. Use a version manager:
 
-  | Manager | Install Node 22 | Run with Node 22 |
+  | Manager | Install Node 24 | Run with Node 24 |
   |---------|----------------|-------------------|
   | [mise](https://mise.jdx.dev) | `mise install` (reads `.mise.toml`) | `mise exec -- npm run setup` |
-  | [fnm](https://github.com/Schniz/fnm) | `fnm install 22` | `fnm exec --using=22 -- npm run setup` |
-  | [nvm](https://github.com/nvm-sh/nvm) | `nvm install 22` | `nvm use 22 && npm run setup` |
-  | [volta](https://volta.sh) | `volta pin node@22` | `npm run setup` |
+  | [fnm](https://github.com/Schniz/fnm) | `fnm install 24` | `fnm exec --using=24 -- npm run setup` |
+  | [nvm](https://github.com/nvm-sh/nvm) | `nvm install 24` | `nvm use 24 && npm run setup` |
+  | [volta](https://volta.sh) | `volta pin node@24` | `npm run setup` |
 
   The setup script detects your Node version and tells you exactly what to do if it's wrong.
 
@@ -30,8 +30,8 @@ cd sv3-runner
 
 # Setup — downloads SV3, extracts, builds sqlite3 for your platform
 mise exec -- npm run setup    # with mise (recommended)
-fnm exec --using=22 -- npm run setup   # with fnm
-npm run setup                 # if Node 22 is already active
+fnm exec --using=24 -- npm run setup   # with fnm
+npm run setup                 # if Node 24 is already active
 
 # Launch STIG Viewer 3
 npm start
@@ -82,13 +82,13 @@ If the new SV3 uses a different Electron version, update `ELECTRON_VERSION` in `
 
 ### "Electron failed to install correctly"
 
-You're running the wrong Node version. Electron 40.1.0 requires Node 22.x.
+You're running the wrong Node version. This project's supported toolchain is Node 24.x (matching Electron 40's bundled Node).
 
 ```bash
-node --version   # Should show v22.x.x
+node --version   # Should show v24.x.x
 ```
 
-Use a version manager (see Prerequisites). The `.mise.toml` file pins Node 22 for `mise` users automatically.
+Use a version manager (see Prerequisites). The `.mise.toml` file pins Node 24 for `mise` users automatically.
 
 ### "NodeJS X.X.X Module NNN not compatible"
 
@@ -126,7 +126,7 @@ sudo dnf groupinstall "Development Tools"
 
 ```
 sv3-runner/
-  .mise.toml              # Pins Node 22 for mise users
+  .mise.toml              # Pins Node 24 for mise users
   .gitignore              # Ignores generated/downloaded files
   package.json            # Dependencies + npm scripts
   scripts/
@@ -153,4 +153,6 @@ This validates that Heimdall's CKLB output is accepted by the real STIG Viewer 3
 
 ## License
 
-This project provides tooling to run DISA's STIG Viewer 3. SV3 itself is a U.S. Government product. This runner is licensed under [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+This project (the sv3-runner tooling) is licensed under the Apache License, Version 2.0 — see the [LICENSE](./LICENSE) file for the full text, and [NOTICE](./NOTICE) for the MITRE copyright and attribution.
+
+STIG Viewer 3 itself is a U.S. Government (DISA) product. This repository does **not** contain, vendor, or modify SV3 — the setup script downloads it directly from the DISA CDN at run time. The Apache-2.0 license applies only to the sv3-runner scripts and configuration, not to STIG Viewer 3. See [NOTICE](./NOTICE) for details.
