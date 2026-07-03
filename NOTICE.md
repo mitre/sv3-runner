@@ -6,7 +6,7 @@ Approved for Public Release; Distribution Unlimited. Case Number 18-3678.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not
 use this project except in compliance with the License. You may obtain a
-copy of the License in the LICENSE file included with this project, or at
+copy of the License in the LICENSE.md file included with this project, or at
 
     http://www.apache.org/licenses/LICENSE-2.0
 

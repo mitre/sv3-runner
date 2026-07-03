@@ -1,6 +1,6 @@
 # sv3-runner
 
-Run [STIG Viewer 3](https://www.cyber.mil/stigs/downloads/) on any platform (macOS, Linux, Windows) for development and CKLB acceptance testing.
+Run [STIG Viewer 3](https://www.cyber.mil/stigs/srg-stig-tools/) on any platform (macOS, Linux, Windows) for development and CKLB acceptance testing.
 
 DISA publishes SV3 as a linux-x64 Electron app only. This project extracts the app source from the packaged binary, rebuilds the native sqlite3 module for your platform, and launches SV3 using a local Electron runtime. The result is a working SV3 on macOS ARM, macOS x64, Linux, or Windows — from a single setup command.
 
@@ -53,13 +53,18 @@ Setup is idempotent — run it again and it skips what's already done. If no SV3
 | `npm run status` | Shortcut: show setup state. |
 | `npm run clean` | Shortcut: remove everything. |
 | `npm start` | Launch STIG Viewer 3. |
-| `npm test` | Run Playwright acceptance tests (CKLB validation). |
+| `npm test` | Run unit + functional tests (`node:test`). |
+| `npm run test:unit` | Run unit tests only. |
+| `npm run test:functional` | Run functional (CLI) tests only. |
+| `npm run test:e2e` | Playwright `_electron` acceptance test — opens a `.cklb` in real SV3 (requires a completed `npm run setup`). |
+| `npm run lint` | ESLint + Prettier check (must be clean). |
+| `npm run format` | Auto-format with Prettier. |
 
 ## How It Works
 
 1. **Extract** — Unpacks `app.asar` from the linux SV3 zip using `@electron/asar`. The asar contains the full Electron app source (JavaScript, HTML, node_modules) which is platform-independent.
 
-2. **Rebuild** — The bundled `sqlite3-offline-next` package ships prebuilt native binaries for linux-x64 only (and darwin-x64, but not darwin-arm64). `@electron/rebuild` compiles the `sqlite3` npm package from source for your platform and Electron's Node ABI.
+2. **Rebuild** — The bundled `sqlite3-offline-next` package ships prebuilt native binaries for linux-x64, darwin-x64, win32-x64, and win32-ia32 — but not darwin-arm64 (Apple Silicon). `@electron/rebuild` compiles the `sqlite3` npm package from source for your platform and Electron's Node ABI.
 
 3. **Patch** — Places the rebuilt `node_sqlite3.node` binary where `sqlite3-offline-next` expects it (`binaries/sqlite3-{platform}/napi-v3-{platform}-{arch}/`).
 
@@ -132,6 +137,17 @@ sv3-runner/
   scripts/
     setup.mjs             # Extract + rebuild + patch (idempotent, cross-platform)
     run.mjs               # Launch SV3 via local Electron
+    verify-setup.mjs      # Verify a completed setup (used by CI)
+    lib/
+      exec.mjs            # Centralized command runner (run / runCapture)
+      pipeline.mjs        # Dependency-injected setup steps (extract/install/build/patch)
+      sv3.mjs             # Pure helpers (version + filename parsing)
+  test/
+    unit/                 # node:test unit tests (pure helpers + injected-spy command assertions)
+    functional/           # node:test CLI tests (drive setup/run as child processes)
+    e2e/                  # Playwright _electron CKLB acceptance test
+    fixtures/             # Test fixtures (sample .cklb, CDN listing HTML)
+    helpers/              # Shared test helpers (sandbox setup)
   downloads/              # Place SV3 zip here
     .gitkeep              # Keeps directory in git
     *.zip                 # (user-provided) SV3 zip from cyber.mil — gitignored
@@ -153,6 +169,6 @@ This validates that Heimdall's CKLB output is accepted by the real STIG Viewer 3
 
 ## License
 
-This project (the sv3-runner tooling) is licensed under the Apache License, Version 2.0 — see the [LICENSE](./LICENSE) file for the full text, and [NOTICE](./NOTICE) for the MITRE copyright and attribution.
+This project (the sv3-runner tooling) is licensed under the Apache License, Version 2.0 — see the [LICENSE](./LICENSE.md) file for the full text, and [NOTICE](./NOTICE.md) for the MITRE copyright and attribution.
 
-STIG Viewer 3 itself is a U.S. Government (DISA) product. This repository does **not** contain, vendor, or modify SV3 — the setup script downloads it directly from the DISA CDN at run time. The Apache-2.0 license applies only to the sv3-runner scripts and configuration, not to STIG Viewer 3. See [NOTICE](./NOTICE) for details.
+STIG Viewer 3 itself is a U.S. Government (DISA) product. This repository does **not** contain, vendor, or modify SV3 — the setup script downloads it directly from the DISA CDN at run time. The Apache-2.0 license applies only to the sv3-runner scripts and configuration, not to STIG Viewer 3. See [NOTICE](./NOTICE.md) for details.
