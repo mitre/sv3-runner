@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import { execSync } from 'child_process';
 import { existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { run } from './lib/exec.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_DIR = join(__dirname, '..');
@@ -16,7 +16,4 @@ if (!existsSync(APP_DIR)) {
 
 const extraArgs = process.argv.slice(2).join(' ');
 console.log('Launching STIG Viewer 3...');
-execSync(`npx electron "${APP_DIR}" --no-sandbox ${extraArgs}`, {
-  stdio: 'inherit',
-  cwd: PROJECT_DIR,
-});
+run(`npx electron "${APP_DIR}" --no-sandbox ${extraArgs}`);

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-import { execSync } from 'child_process';
 import { existsSync, mkdirSync, cpSync, readdirSync, rmSync, statSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import os from 'os';
+import { run, runCapture } from './lib/exec.mjs';
 import {
   parseSv3Listing,
   selectLatestZip,
@@ -71,19 +71,6 @@ Environment:
 }
 
 // --- Helpers ---
-function run(cmd, opts = {}) {
-  console.log(`  $ ${cmd}`);
-  return execSync(cmd, { stdio: 'inherit', cwd: PROJECT_DIR, ...opts });
-}
-
-function runCapture(cmd) {
-  try {
-    return execSync(cmd, { cwd: PROJECT_DIR, encoding: 'utf-8' }).trim();
-  } catch {
-    return null;
-  }
-}
-
 function findFile(dir, name) {
   if (!existsSync(dir)) return null;
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
