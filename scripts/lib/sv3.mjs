@@ -31,9 +31,7 @@ export function selectLatestZip(filenames) {
 // `zipFiles` is the directory listing (caller does the fs read); selection stays pure.
 export function selectSv3Zip(cliArg, downloadsDir, zipFiles, defaultName) {
   if (cliArg) return cliArg;
-  const zips = (zipFiles ?? [])
-    .filter((f) => f.match(/^U_STIGViewer-linux_x64.*\.zip$/i))
-    .sort();
+  const zips = (zipFiles ?? []).filter((f) => f.match(/^U_STIGViewer-linux_x64.*\.zip$/i)).sort();
   if (zips.length > 0) return join(downloadsDir, zips[zips.length - 1]);
   return join(downloadsDir, defaultName);
 }

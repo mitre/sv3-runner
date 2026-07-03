@@ -25,8 +25,8 @@ const MIN_NODE_MAJOR = 22;
 const MAX_NODE_MAJOR = 22;
 
 // --- CLI argument parsing ---
-const args = new Set(process.argv.slice(2).filter(a => a.startsWith('--')));
-const positional = process.argv.slice(2).filter(a => !a.startsWith('--'));
+const args = new Set(process.argv.slice(2).filter((a) => a.startsWith('--')));
+const positional = process.argv.slice(2).filter((a) => !a.startsWith('--'));
 
 const FORCE = args.has('--force');
 const STATUS = args.has('--status');
@@ -165,15 +165,33 @@ function checkNodeVersion() {
   if (checkNodeVersionOk(process.version, MIN_NODE_MAJOR, MAX_NODE_MAJOR)) return true;
 
   console.error(`\nERROR: Node ${process.version} is not compatible.`);
-  console.error(`       Requires Node ${MIN_NODE_MAJOR}.x (Electron ${ELECTRON_VERSION} native module ABI).`);
+  console.error(
+    `       Requires Node ${MIN_NODE_MAJOR}.x (Electron ${ELECTRON_VERSION} native module ABI).`,
+  );
   console.error('');
 
   const managers = [
     { name: 'mise', check: 'mise --version', fix: `mise exec -- node scripts/setup.mjs` },
-    { name: 'fnm', check: 'fnm --version', fix: `fnm exec --using=${MIN_NODE_MAJOR} -- node scripts/setup.mjs` },
-    { name: 'nvm', check: 'nvm --version', fix: `nvm use ${MIN_NODE_MAJOR} && node scripts/setup.mjs` },
-    { name: 'volta', check: 'volta --version', fix: `volta run --node ${MIN_NODE_MAJOR} -- node scripts/setup.mjs` },
-    { name: 'asdf', check: 'asdf --version', fix: `asdf local nodejs ${MIN_NODE_MAJOR}.0.0 && node scripts/setup.mjs` },
+    {
+      name: 'fnm',
+      check: 'fnm --version',
+      fix: `fnm exec --using=${MIN_NODE_MAJOR} -- node scripts/setup.mjs`,
+    },
+    {
+      name: 'nvm',
+      check: 'nvm --version',
+      fix: `nvm use ${MIN_NODE_MAJOR} && node scripts/setup.mjs`,
+    },
+    {
+      name: 'volta',
+      check: 'volta --version',
+      fix: `volta run --node ${MIN_NODE_MAJOR} -- node scripts/setup.mjs`,
+    },
+    {
+      name: 'asdf',
+      check: 'asdf --version',
+      fix: `asdf local nodejs ${MIN_NODE_MAJOR}.0.0 && node scripts/setup.mjs`,
+    },
   ];
 
   for (const mgr of managers) {
@@ -208,14 +226,20 @@ if (STATUS) {
   console.log('=== SV3 Runner Status ===');
   console.log(`Platform:        ${platform} ${arch}`);
   console.log(`Node:            ${process.version}`);
-  console.log(`Node OK:         ${checkNodeVersionOk(process.version, MIN_NODE_MAJOR, MAX_NODE_MAJOR) ? '✓' : `✗ (need ${MIN_NODE_MAJOR}.x)`}`);
+  console.log(
+    `Node OK:         ${checkNodeVersionOk(process.version, MIN_NODE_MAJOR, MAX_NODE_MAJOR) ? '✓' : `✗ (need ${MIN_NODE_MAJOR}.x)`}`,
+  );
   console.log(`Electron:        ${ELECTRON_VERSION}`);
   console.log(`SV3 version:     ${SV3_VERSION}`);
   console.log('');
   console.log(`SV3 zip:         ${existsSync(sv3Zip) ? `✓ ${sv3Zip}` : `✗ not found (${sv3Zip})`}`);
   console.log(`sv3-app/:        ${existsSync(APP_DIR) ? `✓ extracted` : '✗ not extracted'}`);
-  console.log(`node_modules/:   ${existsSync(join(PROJECT_DIR, 'node_modules', 'electron')) ? '✓ installed' : '✗ not installed'}`);
-  console.log(`sqlite3 binary:  ${existsSync(targetBinary) ? `✓ ${platform}-${arch} (${fileAge(targetBinary)})` : `✗ not built for ${platform}-${arch}`}`);
+  console.log(
+    `node_modules/:   ${existsSync(join(PROJECT_DIR, 'node_modules', 'electron')) ? '✓ installed' : '✗ not installed'}`,
+  );
+  console.log(
+    `sqlite3 binary:  ${existsSync(targetBinary) ? `✓ ${platform}-${arch} (${fileAge(targetBinary)})` : `✗ not built for ${platform}-${arch}`}`,
+  );
   console.log('');
 
   if (existsSync(targetBinary)) {
@@ -300,7 +324,9 @@ if (!existsSync(APP_DIR) || FORCE) {
 
   try {
     if (platform === 'win32') {
-      run(`powershell -Command "Expand-Archive -Path '${sv3Zip}' -DestinationPath '${tempDir}' -Force"`);
+      run(
+        `powershell -Command "Expand-Archive -Path '${sv3Zip}' -DestinationPath '${tempDir}' -Force"`,
+      );
     } else {
       run(`unzip -q "${sv3Zip}" "stig_viewer_3-linux-x64/resources/*" -d "${tempDir}"`);
     }
@@ -340,7 +366,9 @@ if (!depsInstalled || FORCE) {
 // Step 3+4: Build and place sqlite3
 if (!existsSync(targetBinary) || FORCE) {
   console.log('');
-  console.log(`--- Step 3: Building sqlite3 for ${platform}-${arch} (Electron ${ELECTRON_VERSION}) ---`);
+  console.log(
+    `--- Step 3: Building sqlite3 for ${platform}-${arch} (Electron ${ELECTRON_VERSION}) ---`,
+  );
   run(`npx @electron/rebuild -f -w sqlite3 -v ${ELECTRON_VERSION}`);
 
   console.log('');
@@ -358,7 +386,9 @@ if (!existsSync(targetBinary) || FORCE) {
   console.log(`OK: ${platform}-${arch} binary placed`);
 } else {
   console.log('');
-  console.log(`--- Step 3: sqlite3 binary exists for ${platform}-${arch}, skipping (use --force to rebuild) ---`);
+  console.log(
+    `--- Step 3: sqlite3 binary exists for ${platform}-${arch}, skipping (use --force to rebuild) ---`,
+  );
 }
 
 // Verify

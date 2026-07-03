@@ -41,10 +41,7 @@ test('selectLatestZip picks the highest version NUMERICALLY (not lexically)', ()
   );
   // 3-10-0 > 3-7-0 numerically but "10" < "7" lexically — pins numeric sort
   assert.equal(
-    selectLatestZip([
-      'U_STIGViewer-linux_x64-3-7-0.zip',
-      'U_STIGViewer-linux_x64-3-10-0.zip',
-    ]),
+    selectLatestZip(['U_STIGViewer-linux_x64-3-7-0.zip', 'U_STIGViewer-linux_x64-3-10-0.zip']),
     'U_STIGViewer-linux_x64-3-10-0.zip',
   );
 });
@@ -57,8 +54,14 @@ test('selectSv3Zip: CLI arg > newest zip in downloads > default name', () => {
     'notes.txt',
   ];
   assert.equal(selectSv3Zip('/x/custom.zip', dl, files, 'default.zip'), '/x/custom.zip');
-  assert.equal(selectSv3Zip(undefined, dl, files, 'default.zip'), '/downloads/U_STIGViewer-linux_x64-3-7-0.zip');
-  assert.equal(selectSv3Zip(undefined, dl, [], 'U_STIGViewer-linux_x64-3-7-0.zip'), '/downloads/U_STIGViewer-linux_x64-3-7-0.zip');
+  assert.equal(
+    selectSv3Zip(undefined, dl, files, 'default.zip'),
+    '/downloads/U_STIGViewer-linux_x64-3-7-0.zip',
+  );
+  assert.equal(
+    selectSv3Zip(undefined, dl, [], 'U_STIGViewer-linux_x64-3-7-0.zip'),
+    '/downloads/U_STIGViewer-linux_x64-3-7-0.zip',
+  );
 });
 
 test('checkNodeVersionOk accepts only the [min,max] major range', () => {
@@ -76,7 +79,10 @@ test('fileAgeLabel formats a ms delta the same way the inline code did', () => {
 test('hashesFilenameFor pins CURRENT (buggy) output — card .3 fixes + updates this', () => {
   // The inline code has a no-op `.replace(/-/g,'-')`, yielding a wrong name.
   // Characterization only: proves the extraction is behavior-preserving.
-  assert.equal(hashesFilenameFor('U_STIGViewer-linux_x64-3-7-0.zip'), 'U_STIGViewer_-3-7-0_Hashes.txt');
+  assert.equal(
+    hashesFilenameFor('U_STIGViewer-linux_x64-3-7-0.zip'),
+    'U_STIGViewer_-3-7-0_Hashes.txt',
+  );
 });
 
 test('sqlite3 target paths match the inline join()', () => {
